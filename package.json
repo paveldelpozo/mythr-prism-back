@@ -1,0 +1,10 @@
+{
+  "name": "mythr-prism-back",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Backend scaffold para Mythr Prism",
+  "type": "module",
+  "scripts": {
+    "dev": "node -e \"console.log('mythr-prism-back: scaffold listo; backend aun no implementado.')\""
+  }
+}
