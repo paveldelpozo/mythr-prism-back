@@ -1,10 +1,10 @@
 # Backlog y plan de implementacion del backend Mythr Prism
 
-Ultima actualizacion: 2026-04-03
+Ultima actualizacion: 2026-04-05
 
 ## Resumen
 
-Backlog tecnico del backend para habilitar **Monitor Virtual Remoto (Cloud Sync)** sin implementar codigo funcional en esta iteracion.
+Backlog tecnico del backend para habilitar **Monitor Virtual Remoto (Cloud Sync)**.
 
 - Stack confirmado: Node.js + Socket.io.
 - Estado de sesiones: Redis.
@@ -45,94 +45,94 @@ Backlog tecnico del backend para habilitar **Monitor Virtual Remoto (Cloud Sync)
 
 ## Epicas V1 - Monitor Virtual Remoto (Cloud Sync)
 
-- [ ] **E1. Foundation de servicio Socket.io + Redis**
-  - Estado: `approved-pending-execution`.
+- [x] **E1. Foundation de servicio Socket.io + Redis**
+  - Estado: `completed`.
   - Entregables:
-    - [ ] Bootstrap del servidor Node con namespaces/eventos base.
-    - [ ] Cliente Redis, esquema de claves y politica TTL.
-    - [ ] Healthcheck/readiness y configuracion por variables de entorno.
+    - [x] Bootstrap del servidor Node con namespaces/eventos base.
+    - [x] Cliente Redis, esquema de claves y politica TTL.
+    - [x] Healthcheck/readiness y configuracion por variables de entorno.
   - Criterios de aceptacion:
-    - [ ] El servicio levanta en local y responde health/readiness.
-    - [ ] Se crea/expira sala en Redis con TTL de 5 minutos sin clientes.
+    - [x] El servicio levanta en local y responde health/readiness.
+    - [x] Se crea/expira sala en Redis con TTL de 5 minutos sin clientes.
   - DoD fase:
-    - [ ] Pruebas unitarias de utilidades de sala/TTL.
-    - [ ] Logging estructurado activo en eventos core.
+    - [x] Pruebas unitarias de utilidades de sala/TTL.
+    - [x] Logging estructurado activo en eventos core.
 
-- [ ] **E2. Pairing seguro y lifecycle de sala**
-  - Estado: `approved-pending-execution`.
+- [x] **E2. Pairing seguro y lifecycle de sala**
+  - Estado: `completed`.
   - Entregables:
-    - [ ] Generacion de `pairCode` alta entropia formato `XXXX-XXXX-XXXX`.
-    - [ ] Flujo host crea sala -> cliente por URL/QR -> cliente ingresa codigo -> host valida.
-    - [ ] Cierre automatico por inactividad de clientes a los 5 minutos.
+    - [x] Generacion de `pairCode` alta entropia formato `XXXX-XXXX-XXXX`.
+    - [x] Flujo host crea sala -> cliente por URL/QR -> cliente ingresa codigo -> host valida.
+    - [x] Cierre automatico por inactividad de clientes a los 5 minutos.
   - Criterios de aceptacion:
-    - [ ] Solo el cliente ingresa codigo; host nunca pide ingresar codigo manual.
-    - [ ] Pairing invalido no da alta de cliente ni consume estado inconsistente.
+    - [x] Solo el cliente ingresa codigo; host nunca pide ingresar codigo manual.
+    - [x] Pairing invalido no da alta de cliente ni consume estado inconsistente.
   - DoD fase:
-    - [ ] Tests de contrato Socket.io para handshake exitoso y rechazo.
-    - [ ] Metricas de intentos/resultado disponibles.
+    - [x] Tests de contrato Socket.io para handshake exitoso y rechazo.
+    - [x] Metricas de intentos/resultado disponibles.
 
-- [ ] **E3. Transporte remoto por WebRTC + sincronizacion de estado**
-  - Estado: `approved-pending-execution`.
+- [x] **E3. Transporte remoto por WebRTC + sincronizacion de estado**
+  - Estado: `completed`.
   - Entregables:
-    - [ ] Senalizacion SDP/ICE via Socket.io.
-    - [ ] Canal de contenido host->remoto optimizado para 25fps objetivo.
-    - [ ] Canal de control para estado remoto (`conectando/emparejado/reconectando/caido`).
+    - [x] Senalizacion SDP/ICE via Socket.io.
+    - [x] Canal de contenido host->remoto optimizado para 25fps objetivo.
+    - [x] Canal de control para estado remoto (`conectando/emparejado/reconectando/caido`).
   - Criterios de aceptacion:
-    - [ ] En red objetivo, flujo remoto mantiene reproduccion estable con degradacion controlada.
-    - [ ] Reconexion breve preserva sala y recupera estado remoto.
+    - [x] En red objetivo, flujo remoto mantiene reproduccion estable con degradacion controlada.
+    - [x] Reconexion breve preserva sala y recupera estado remoto.
   - DoD fase:
-    - [ ] Pruebas de reconexion y fallback documentadas.
-    - [ ] Registro de latencia y fps efectivo por sesion.
+    - [x] Pruebas de reconexion y fallback documentadas.
+    - [x] Registro de latencia y fps efectivo por sesion.
 
-- [ ] **E4. Seguridad operativa y anti abuso**
-  - Estado: `approved-pending-execution`.
+- [x] **E4. Seguridad operativa y anti abuso**
+  - Estado: `completed`.
   - Entregables:
-    - [ ] Middleware rate limit para pairing no aprobado.
-    - [ ] Baneo temporal escalonado por IP/room.
-    - [ ] Hooks de auditoria de eventos sospechosos.
+    - [x] Middleware rate limit para pairing no aprobado.
+    - [x] Baneo temporal escalonado por IP/room.
+    - [x] Hooks de auditoria de eventos sospechosos.
   - Criterios de aceptacion:
-    - [ ] Exceso de intentos bloquea temporalmente nuevos intentos de pairing.
-    - [ ] El baneo expira automaticamente sin intervencion manual.
+    - [x] Exceso de intentos bloquea temporalmente nuevos intentos de pairing.
+    - [x] El baneo expira automaticamente sin intervencion manual.
   - DoD fase:
-    - [ ] Tests de limite y expiracion de ban.
-    - [ ] Dashboards/consultas basicas para detectar abuso.
+    - [x] Tests de limite y expiracion de ban.
+    - [x] Dashboards/consultas basicas para detectar abuso.
 
-- [ ] **E5. Observabilidad y operaciones (desde inicio)**
-  - Estado: `approved-pending-execution`.
+- [x] **E5. Observabilidad y operaciones (desde inicio)**
+  - Estado: `completed`.
   - Entregables:
-    - [ ] Logs estructurados y politicas de nivel (`info/warn/error`).
-    - [ ] Endpoint o export de metricas para scraping.
-    - [ ] Trazas de eventos criticos de pairing/sala/reconexion.
+    - [x] Logs estructurados y politicas de nivel (`info/warn/error`).
+    - [x] Endpoint o export de metricas para scraping.
+    - [x] Trazas de eventos criticos de pairing/sala/reconexion.
   - Criterios de aceptacion:
-    - [ ] Cada incidente operativo puede rastrearse por `roomId` y `requestId`.
-    - [ ] Metricas clave disponibles en entorno de despliegue.
+    - [x] Cada incidente operativo puede rastrearse por `roomId` y `requestId`.
+    - [x] Metricas clave disponibles en entorno de despliegue.
   - DoD fase:
-    - [ ] Checklist de observabilidad minimo completo antes de release.
+    - [x] Checklist de observabilidad minimo completo antes de release.
 
 ## Checklist tecnico de infraestructura (backend)
 
-- [ ] Variables de entorno versionadas en `.env.example` (sin secretos reales).
+- [x] Variables de entorno versionadas en `.env.example` (sin secretos reales).
 - [ ] Redis provisionado con politica de eviction compatible y persistence definida.
-- [ ] Socket.io con configuracion de ping/pong, reconexion y limites de payload.
-- [ ] Timeouts globales de handshake y limpieza de sockets huerfanos.
-- [ ] CORS abierto temporalmente documentado (y pendiente de restriccion por origen en hardening).
-- [ ] Limites de intentos + baneo temporal habilitados.
-- [ ] Logs JSON + metricas publicados desde inicio.
+- [x] Socket.io con configuracion de ping/pong, reconexion y limites de payload.
+- [x] Timeouts globales de handshake y limpieza de sockets huerfanos.
+- [x] CORS abierto temporalmente documentado (y pendiente de restriccion por origen en hardening).
+- [x] Limites de intentos + baneo temporal habilitados.
+- [x] Logs JSON + metricas publicados desde inicio.
 - [ ] Runbook minimo de incidencias (reinicio, saturacion, degradacion de red).
 
 ## Checklist de despliegue Dokploy (front + back)
 
-- [ ] Definir `docker-compose` del monorepo con servicios `frontend`, `backend` y `redis`.
-- [ ] Configurar networking interno entre servicios y puertos publicos minimos.
-- [ ] Configurar variables de entorno por servicio en Dokploy.
+- [x] Definir `docker-compose` del monorepo con servicios `frontend`, `backend` y `redis`.
+- [x] Configurar networking interno entre servicios y puertos publicos minimos.
+- [x] Configurar variables de entorno por servicio en Dokploy.
 - [ ] Activar TLS en entrada publica (HTTPS/WSS) para produccion.
-- [ ] Configurar healthcheck de backend y estrategia de restart.
-- [ ] Definir estrategia de logs (retencion minima y acceso operativo).
+- [x] Configurar healthcheck de backend y estrategia de restart.
+- [x] Definir estrategia de logs (retencion minima y acceso operativo).
 - [ ] Validar deploy end-to-end: host crea sala, cliente remoto empareja, sala expira sin clientes en 5 min.
 
-## Plan de implementacion aprobado pendiente de ejecucion
+## Plan de implementacion ejecutado
 
-- Estado general: `aprobado pendiente de OK final del usuario`.
+- Estado general: `implemented-and-validated-in-development`.
 - Ramas sugeridas:
   - `feature/back-remote-foundation`
   - `feature/back-remote-pairing`
@@ -143,7 +143,7 @@ Backlog tecnico del backend para habilitar **Monitor Virtual Remoto (Cloud Sync)
   - Merge por fase a `development` con DoD completo y validacion tecnica minima.
   - Promocion a `main` solo tras cierre de checklist Dokploy + smoke test remoto.
 - Gate de inicio:
-  - [ ] OK explicito del usuario para iniciar implementacion funcional.
+  - [x] OK explicito del usuario para iniciar implementacion funcional.
 
 ## Riesgos principales y mitigaciones
 
