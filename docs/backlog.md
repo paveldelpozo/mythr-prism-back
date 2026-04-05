@@ -1,6 +1,6 @@
 # Backlog y plan de implementacion del backend Mythr Prism
 
-Ultima actualizacion: 2026-04-03
+Ultima actualizacion: 2026-04-05
 
 ## Resumen
 
@@ -130,9 +130,9 @@ Backlog tecnico del backend para habilitar **Monitor Virtual Remoto (Cloud Sync)
 - [x] Definir estrategia de logs (retencion minima y acceso operativo).
 - [ ] Validar deploy end-to-end: host crea sala, cliente remoto empareja, sala expira sin clientes en 5 min.
 
-## Plan de implementacion aprobado pendiente de ejecucion
+## Plan de implementacion ejecutado
 
-- Estado general: `implemented-in-feature-branch`.
+- Estado general: `implemented-and-validated-in-development`.
 - Ramas sugeridas:
   - `feature/back-remote-foundation`
   - `feature/back-remote-pairing`
@@ -143,7 +143,7 @@ Backlog tecnico del backend para habilitar **Monitor Virtual Remoto (Cloud Sync)
   - Merge por fase a `development` con DoD completo y validacion tecnica minima.
   - Promocion a `main` solo tras cierre de checklist Dokploy + smoke test remoto.
 - Gate de inicio:
-  - [ ] OK explicito del usuario para iniciar implementacion funcional.
+  - [x] OK explicito del usuario para iniciar implementacion funcional.
 
 ## Riesgos principales y mitigaciones
 
