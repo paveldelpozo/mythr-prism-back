@@ -109,6 +109,63 @@ Backlog tecnico del backend para habilitar **Monitor Virtual Remoto (Cloud Sync)
   - DoD fase:
     - [x] Checklist de observabilidad minimo completo antes de release.
 
+## V2 - API de control total (prioridad #1)
+
+- [ ] **B1. Foundation API publica (REST + Realtime)**
+  - Estado: `pending`.
+  - Stack confirmado: Express + Zod/OpenAPI.
+  - Objetivo: exponer control completo de backend y frontend desde el dia 1 con API como fuente de verdad unica.
+  - Alcance:
+    - [ ] Base versionada `/api/v1/` para todos los recursos.
+    - [ ] Autenticacion inicial por API Key simple.
+    - [ ] Sin roles en esta etapa; OAuth/login pasa a fase posterior.
+    - [ ] Rate-limit por IP como hardening base anti-abuso.
+    - [ ] Formato de error estandar `{ code, message, details }`.
+    - [ ] Payloads y errores en ingles tecnico.
+  - Criterios de aceptacion:
+    - [ ] Servicio responde bajo `/api/v1/` con validacion de entrada/salida en contratos Zod.
+    - [ ] Todos los endpoints protegidos por API Key (excepto health/docs definidos explicitamente).
+    - [ ] Respuestas de error cumplen envelope estandar y codigos HTTP coherentes.
+
+- [ ] **B2. Recursos de dominio V2 (orden secuencial aprobado)**
+  - Estado: `pending`.
+  - Secuencia de implementacion:
+    - [ ] 1) Monitores/salas remotas.
+    - [ ] 2) Contenido y transformaciones.
+    - [ ] 3) Playlist/playback.
+    - [ ] 4) Mirror/pizarra/layouts.
+    - [ ] 5) Eventos realtime + observabilidad API.
+  - Criterios de aceptacion:
+    - [ ] Cada bloque expone endpoints REST con ejemplos request/response y codigos de error por endpoint.
+    - [ ] Cada bloque publica eventos realtime WebSocket tipados para estado, comandos y acks.
+
+- [ ] **B3. Documentacion OpenAPI/Swagger y artefactos para terceros**
+  - Estado: `pending`.
+  - Entregables:
+    - [ ] Especificacion OpenAPI 3.1 consolidada del backend.
+    - [ ] Swagger UI montado en `/docs`.
+    - [ ] Export de contrato en `openapi.json` y `openapi.yaml`.
+    - [ ] SDK cliente TypeScript generado/curado desde OpenAPI.
+    - [ ] Colecciones Postman e Insomnia exportadas y alineadas al contrato actual.
+  - Criterios de aceptacion:
+    - [ ] Documentacion accesible y util para onboarding de integradores externos.
+    - [ ] SDK y colecciones permiten ejecutar el primer flujo usable por terceros sin depender del frontend.
+
+- [ ] **B4. Tests de contrato API (REST + Realtime)**
+  - Estado: `pending`.
+  - Entregables:
+    - [ ] Suite automatizada de contrato para REST (schemas, status codes, error envelope).
+    - [ ] Suite automatizada de contrato para WebSocket realtime (eventos, payloads, acks y errores).
+    - [ ] Gate de CI para backward-compat basica de `/api/v1/`.
+  - Criterios de aceptacion:
+    - [ ] Falla de contrato bloquea merge en `development`.
+    - [ ] Versionado y cambios breaking quedan explicitados antes de release.
+  - DoD V2 #1:
+    - [ ] API Foundation + docs + auth + seguridad base operativa.
+    - [ ] Recursos secuenciales V2 expuestos con REST + realtime.
+    - [ ] OpenAPI/Swagger + JSON/YAML + SDK TS + Postman/Insomnia publicados.
+    - [ ] Tests de contrato en verde y validacion minima ejecutada (`pnpm run typecheck`, `pnpm run build`, `pnpm run test`).
+
 ## Checklist tecnico de infraestructura (backend)
 
 - [x] Variables de entorno versionadas en `.env.example` (sin secretos reales).
