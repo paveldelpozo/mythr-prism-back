@@ -4,8 +4,17 @@ import { randomUUID } from 'node:crypto';
 import { createServer } from 'node:http';
 import pino from 'pino';
 import { Server } from 'socket.io';
+import swaggerUi from 'swagger-ui-express';
+import { stringify as toYaml } from 'yaml';
 import { z } from 'zod';
 import { loadConfig } from './config.js';
+import {
+  createApiKeyAuthMiddleware,
+  createApiRateLimiter,
+  createFullControlApiRouter,
+  createSystemStatusPayload,
+  fullControlOpenApiSpec
+} from './fullControlApi.js';
 import {
   activeRemoteClients,
   activeRooms,
@@ -28,12 +37,76 @@ const app = express();
 app.use(cors({ origin: config.corsOrigin === '*' ? true : config.corsOrigin }));
 app.use(express.json());
 
+app.get('/openapi.json', (_req, res) => {
+  res.json(fullControlOpenApiSpec);
+});
+
+app.get('/openapi.yaml', (_req, res) => {
+  res.setHeader('Content-Type', 'application/yaml');
+  res.send(toYaml(fullControlOpenApiSpec));
+});
+
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(fullControlOpenApiSpec));
+
+const fullControlApiRouter = createFullControlApiRouter({ secureMode: config.secureMode });
+app.use(
+  '/api/v1',
+  createApiRateLimiter(config.fullControlRateLimitWindowMs, config.fullControlRateLimitMax),
+  createApiKeyAuthMiddleware(config.fullControlApiKey),
+  fullControlApiRouter
+);
+
 const server = createServer(app);
 const io = new Server(server, {
   cors: { origin: '*' },
   transports: ['websocket', 'polling'],
   pingInterval: 20_000,
   pingTimeout: 15_000
+});
+
+const fullControlNamespace = io.of('/realtime/v1');
+
+fullControlNamespace.use((socket, next) => {
+  const authApiKey = typeof socket.handshake.auth?.apiKey === 'string'
+    ? socket.handshake.auth.apiKey.trim()
+    : '';
+  const queryApiKey = typeof socket.handshake.query.apiKey === 'string'
+    ? socket.handshake.query.apiKey.trim()
+    : '';
+  const headerApiKey = typeof socket.handshake.headers['x-api-key'] === 'string'
+    ? socket.handshake.headers['x-api-key'].trim()
+    : '';
+
+  const providedApiKey = authApiKey || queryApiKey || headerApiKey;
+  if (providedApiKey === config.fullControlApiKey) {
+    next();
+    return;
+  }
+
+  next(new Error('unauthorized_api_key'));
+});
+
+fullControlNamespace.on('connection', (socket) => {
+  socket.emit('system:hello', {
+    type: 'system:hello',
+    payload: {
+      socketId: socket.id,
+      status: createSystemStatusPayload(config.secureMode)
+    }
+  });
+
+  socket.on('system:ping', (_payload, ack) => {
+    const status = createSystemStatusPayload(config.secureMode);
+    socket.emit('system:status', { type: 'system:status', payload: status });
+    ack?.({ ok: true, status });
+  });
+
+  socket.on('system:request-status', () => {
+    socket.emit('system:status', {
+      type: 'system:status',
+      payload: createSystemStatusPayload(config.secureMode)
+    });
+  });
 });
 
 const store = new SessionStore(config.redisUrl);
@@ -437,4 +510,8 @@ const start = async () => {
   });
 };
 
-void start();
+export { app, server, io, fullControlNamespace };
+
+if (process.env.SKIP_SERVER_START !== 'true') {
+  void start();
+}
