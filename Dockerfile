@@ -1,11 +1,18 @@
-FROM node:20-alpine
+FROM node:20-alpine AS base
 
 WORKDIR /app
 
-ENV PORT=3000
+RUN corepack enable
 
 COPY mythr-prism-back/package.json ./package.json
+COPY mythr-prism-back/pnpm-lock.yaml ./pnpm-lock.yaml
+
+RUN pnpm install --frozen-lockfile
+
+COPY mythr-prism-back ./
+
+RUN pnpm run build
 
 EXPOSE 3000
 
-CMD ["node", "-e", "const http = require('http'); const port = Number(process.env.PORT || 3000); http.createServer((_req, res) => { res.writeHead(501, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ service: 'mythr-prism-back', status: 'not-implemented', message: 'Backend scaffold listo para futura implementacion.' })); }).listen(port, '0.0.0.0', () => console.log('mythr-prism-back placeholder on :' + port));"]
+CMD ["node", "dist/server.js"]

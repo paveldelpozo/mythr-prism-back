@@ -1,0 +1,212 @@
+# Backlog y plan de implementacion del backend Mythr Prism
+
+Ultima actualizacion: 2026-04-05
+
+## Resumen
+
+Backlog tecnico del backend para habilitar **Monitor Virtual Remoto (Cloud Sync)**.
+
+- Stack confirmado: Node.js + Socket.io.
+- Estado de sesiones: Redis.
+- Transporte preferido de contenido: WebRTC (senalizacion por Socket.io).
+- Seguridad inicial: TLS obligatorio en produccion, CORS abierto temporalmente, anti abuso por rate limit + baneo temporal.
+- Observabilidad desde el dia 0: logs estructurados + metricas.
+
+## Decisiones de arquitectura base (aprobadas para ejecucion)
+
+- **Senalizacion**: Socket.io como bus de control (`room lifecycle`, pairing, heartbeat, reconexion, errores).
+- **Data/media path**:
+  - Canal de control y eventos: Socket.io (JSON tipado).
+  - Canal de contenido host -> remoto: WebRTC preferido para reducir latencia y sostener objetivo ideal de 25fps.
+  - Fallback inicial: degradacion por snapshots/frames controlados si WebRTC no queda disponible en runtime.
+- **Modelo Redis de sesion/sala**:
+  - `room:{roomId}`: metadatos de sala, host, timestamps, estado.
+  - `room:{roomId}:clients`: set/hash de clientes remotos emparejados.
+  - `pair:{roomId}:{pairCode}`: intento de pairing con TTL corto y conteo de intentos.
+  - TTL de sala sin clientes: 5 minutos (autocierre).
+- **Anti abuso**:
+  - Rate limit de intentos no aprobados por `ip + roomId`.
+  - Baneo temporal escalonado por exceso (ej. 5m, 15m, 60m).
+  - Registro de eventos de abuso para auditoria operativa.
+- **Observabilidad**:
+  - Logs JSON con `requestId`, `roomId`, `clientId`, `event`, `status`, `latencyMs`.
+  - Metricas minimas: `pairing_attempts_total`, `pairing_success_total`, `active_rooms`, `active_remote_clients`, `reconnect_total`, `room_expired_total`, `webrtc_negotiation_fail_total`.
+
+## Estrategia TLS: local vs produccion
+
+- **Produccion (obligatorio)**
+  - HTTPS/WSS terminados en proxy de entrada de Dokploy (certificados validos).
+  - Redireccion HTTP -> HTTPS.
+  - Cookies/tokens de sesion efimeros solo en canal seguro.
+- **Local (estrategia clara)**
+  - Opcion A (default desarrollo): HTTP/WS en `localhost` con advertencia explicita de entorno no productivo.
+  - Opcion B (paridad pre-release): HTTPS local con mkcert/Caddy/Traefik para pruebas de fullscreen/kiosko y politicas de navegador mas cercanas a produccion.
+  - Regla: cualquier prueba de flujo final de pairing remoto debe ejecutarse al menos una vez sobre entorno TLS.
+
+## Epicas V1 - Monitor Virtual Remoto (Cloud Sync)
+
+- [x] **E1. Foundation de servicio Socket.io + Redis**
+  - Estado: `completed`.
+  - Entregables:
+    - [x] Bootstrap del servidor Node con namespaces/eventos base.
+    - [x] Cliente Redis, esquema de claves y politica TTL.
+    - [x] Healthcheck/readiness y configuracion por variables de entorno.
+  - Criterios de aceptacion:
+    - [x] El servicio levanta en local y responde health/readiness.
+    - [x] Se crea/expira sala en Redis con TTL de 5 minutos sin clientes.
+  - DoD fase:
+    - [x] Pruebas unitarias de utilidades de sala/TTL.
+    - [x] Logging estructurado activo en eventos core.
+
+- [x] **E2. Pairing seguro y lifecycle de sala**
+  - Estado: `completed`.
+  - Entregables:
+    - [x] Generacion de `pairCode` alta entropia formato `XXXX-XXXX-XXXX`.
+    - [x] Flujo host crea sala -> cliente por URL/QR -> cliente ingresa codigo -> host valida.
+    - [x] Cierre automatico por inactividad de clientes a los 5 minutos.
+  - Criterios de aceptacion:
+    - [x] Solo el cliente ingresa codigo; host nunca pide ingresar codigo manual.
+    - [x] Pairing invalido no da alta de cliente ni consume estado inconsistente.
+  - DoD fase:
+    - [x] Tests de contrato Socket.io para handshake exitoso y rechazo.
+    - [x] Metricas de intentos/resultado disponibles.
+
+- [x] **E3. Transporte remoto por WebRTC + sincronizacion de estado**
+  - Estado: `completed`.
+  - Entregables:
+    - [x] Senalizacion SDP/ICE via Socket.io.
+    - [x] Canal de contenido host->remoto optimizado para 25fps objetivo.
+    - [x] Canal de control para estado remoto (`conectando/emparejado/reconectando/caido`).
+  - Criterios de aceptacion:
+    - [x] En red objetivo, flujo remoto mantiene reproduccion estable con degradacion controlada.
+    - [x] Reconexion breve preserva sala y recupera estado remoto.
+  - DoD fase:
+    - [x] Pruebas de reconexion y fallback documentadas.
+    - [x] Registro de latencia y fps efectivo por sesion.
+
+- [x] **E4. Seguridad operativa y anti abuso**
+  - Estado: `completed`.
+  - Entregables:
+    - [x] Middleware rate limit para pairing no aprobado.
+    - [x] Baneo temporal escalonado por IP/room.
+    - [x] Hooks de auditoria de eventos sospechosos.
+  - Criterios de aceptacion:
+    - [x] Exceso de intentos bloquea temporalmente nuevos intentos de pairing.
+    - [x] El baneo expira automaticamente sin intervencion manual.
+  - DoD fase:
+    - [x] Tests de limite y expiracion de ban.
+    - [x] Dashboards/consultas basicas para detectar abuso.
+
+- [x] **E5. Observabilidad y operaciones (desde inicio)**
+  - Estado: `completed`.
+  - Entregables:
+    - [x] Logs estructurados y politicas de nivel (`info/warn/error`).
+    - [x] Endpoint o export de metricas para scraping.
+    - [x] Trazas de eventos criticos de pairing/sala/reconexion.
+  - Criterios de aceptacion:
+    - [x] Cada incidente operativo puede rastrearse por `roomId` y `requestId`.
+    - [x] Metricas clave disponibles en entorno de despliegue.
+  - DoD fase:
+    - [x] Checklist de observabilidad minimo completo antes de release.
+
+## V2 - API de control total (prioridad #1)
+
+- [ ] **B1. Foundation API publica (REST + Realtime)**
+  - Estado: `pending`.
+  - Stack confirmado: Express + Zod/OpenAPI.
+  - Objetivo: exponer control completo de backend y frontend desde el dia 1 con API como fuente de verdad unica.
+  - Alcance:
+    - [ ] Base versionada `/api/v1/` para todos los recursos.
+    - [ ] Autenticacion inicial por API Key simple.
+    - [ ] Sin roles en esta etapa; OAuth/login pasa a fase posterior.
+    - [ ] Rate-limit por IP como hardening base anti-abuso.
+    - [ ] Formato de error estandar `{ code, message, details }`.
+    - [ ] Payloads y errores en ingles tecnico.
+  - Criterios de aceptacion:
+    - [ ] Servicio responde bajo `/api/v1/` con validacion de entrada/salida en contratos Zod.
+    - [ ] Todos los endpoints protegidos por API Key (excepto health/docs definidos explicitamente).
+    - [ ] Respuestas de error cumplen envelope estandar y codigos HTTP coherentes.
+
+- [ ] **B2. Recursos de dominio V2 (orden secuencial aprobado)**
+  - Estado: `pending`.
+  - Secuencia de implementacion:
+    - [ ] 1) Monitores/salas remotas.
+    - [ ] 2) Contenido y transformaciones.
+    - [ ] 3) Playlist/playback.
+    - [ ] 4) Mirror/pizarra/layouts.
+    - [ ] 5) Eventos realtime + observabilidad API.
+  - Criterios de aceptacion:
+    - [ ] Cada bloque expone endpoints REST con ejemplos request/response y codigos de error por endpoint.
+    - [ ] Cada bloque publica eventos realtime WebSocket tipados para estado, comandos y acks.
+
+- [ ] **B3. Documentacion OpenAPI/Swagger y artefactos para terceros**
+  - Estado: `pending`.
+  - Entregables:
+    - [ ] Especificacion OpenAPI 3.1 consolidada del backend.
+    - [ ] Swagger UI montado en `/docs`.
+    - [ ] Export de contrato en `openapi.json` y `openapi.yaml`.
+    - [ ] SDK cliente TypeScript generado/curado desde OpenAPI.
+    - [ ] Colecciones Postman e Insomnia exportadas y alineadas al contrato actual.
+  - Criterios de aceptacion:
+    - [ ] Documentacion accesible y util para onboarding de integradores externos.
+    - [ ] SDK y colecciones permiten ejecutar el primer flujo usable por terceros sin depender del frontend.
+
+- [ ] **B4. Tests de contrato API (REST + Realtime)**
+  - Estado: `pending`.
+  - Entregables:
+    - [ ] Suite automatizada de contrato para REST (schemas, status codes, error envelope).
+    - [ ] Suite automatizada de contrato para WebSocket realtime (eventos, payloads, acks y errores).
+    - [ ] Gate de CI para backward-compat basica de `/api/v1/`.
+  - Criterios de aceptacion:
+    - [ ] Falla de contrato bloquea merge en `development`.
+    - [ ] Versionado y cambios breaking quedan explicitados antes de release.
+  - DoD V2 #1:
+    - [ ] API Foundation + docs + auth + seguridad base operativa.
+    - [ ] Recursos secuenciales V2 expuestos con REST + realtime.
+    - [ ] OpenAPI/Swagger + JSON/YAML + SDK TS + Postman/Insomnia publicados.
+    - [ ] Tests de contrato en verde y validacion minima ejecutada (`pnpm run typecheck`, `pnpm run build`, `pnpm run test`).
+
+## Checklist tecnico de infraestructura (backend)
+
+- [x] Variables de entorno versionadas en `.env.example` (sin secretos reales).
+- [ ] Redis provisionado con politica de eviction compatible y persistence definida.
+- [x] Socket.io con configuracion de ping/pong, reconexion y limites de payload.
+- [x] Timeouts globales de handshake y limpieza de sockets huerfanos.
+- [x] CORS abierto temporalmente documentado (y pendiente de restriccion por origen en hardening).
+- [x] Limites de intentos + baneo temporal habilitados.
+- [x] Logs JSON + metricas publicados desde inicio.
+- [ ] Runbook minimo de incidencias (reinicio, saturacion, degradacion de red).
+
+## Checklist de despliegue Dokploy (front + back)
+
+- [x] Definir `docker-compose` del monorepo con servicios `frontend`, `backend` y `redis`.
+- [x] Configurar networking interno entre servicios y puertos publicos minimos.
+- [x] Configurar variables de entorno por servicio en Dokploy.
+- [ ] Activar TLS en entrada publica (HTTPS/WSS) para produccion.
+- [x] Configurar healthcheck de backend y estrategia de restart.
+- [x] Definir estrategia de logs (retencion minima y acceso operativo).
+- [ ] Validar deploy end-to-end: host crea sala, cliente remoto empareja, sala expira sin clientes en 5 min.
+
+## Plan de implementacion ejecutado
+
+- Estado general: `implemented-and-validated-in-development`.
+- Ramas sugeridas:
+  - `feature/back-remote-foundation`
+  - `feature/back-remote-pairing`
+  - `feature/back-remote-webrtc`
+  - `feature/back-remote-security-observability`
+  - `feature/infra-dokploy-remote-stack`
+- Regla de integracion:
+  - Merge por fase a `development` con DoD completo y validacion tecnica minima.
+  - Promocion a `main` solo tras cierre de checklist Dokploy + smoke test remoto.
+- Gate de inicio:
+  - [x] OK explicito del usuario para iniciar implementacion funcional.
+
+## Riesgos principales y mitigaciones
+
+- Riesgo: variabilidad de red impide 25fps sostenido.
+  - Mitigacion: adaptacion de calidad/fps dinamica y telemetria de fps real por cliente.
+- Riesgo: complejidad de WebRTC en navegadores moviles.
+  - Mitigacion: fase de pruebas temprana con matriz de dispositivos + fallback degradado controlado.
+- Riesgo: abuso de endpoints de pairing por CORS abierto.
+  - Mitigacion: rate limit estricto, ban temporal y monitoreo de anomalias desde primera entrega.
