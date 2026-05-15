@@ -3,6 +3,7 @@ FROM node:20-alpine AS base
 WORKDIR /app
 
 RUN corepack enable
+RUN corepack prepare pnpm@10.33.0 --activate
 
 COPY mythr-prism-back/package.json ./package.json
 COPY mythr-prism-back/pnpm-lock.yaml ./pnpm-lock.yaml
