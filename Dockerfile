@@ -4,14 +4,13 @@ WORKDIR /app
 
 RUN corepack enable
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY mythr-prism-back/package.json ./mythr-prism-back/package.json
+COPY mythr-prism-back/package.json ./package.json
+COPY mythr-prism-back/pnpm-lock.yaml ./pnpm-lock.yaml
 
-RUN pnpm install --filter mythr-prism-back... --frozen-lockfile
+RUN pnpm install --frozen-lockfile
 
-COPY mythr-prism-back ./mythr-prism-back
+COPY mythr-prism-back ./
 
-WORKDIR /app/mythr-prism-back
 RUN pnpm run build
 
 EXPOSE 3000
